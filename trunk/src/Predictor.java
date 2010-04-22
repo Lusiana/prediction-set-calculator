@@ -25,8 +25,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
-import java.util.*;
-import java.util.regex.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.ListIterator;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class Predictor {
 
@@ -278,7 +282,7 @@ public class Predictor {
 	public void setSymbolsDeriveEmpty() {
 		for (int i = 0; i < LHSList.size(); i++) {
 			ProductionRule pr = allProductionRules.get(LHSList.get(i));
-			Iterator<Element> li = pr.getRHSList().iterator();
+			ListIterator<Element> li = pr.getRHSList().listIterator();
 			
 			while(li.hasNext()) {
 				String next = li.next().getElement();
