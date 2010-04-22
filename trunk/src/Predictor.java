@@ -1,11 +1,11 @@
 /* =============================================================================
  * Name                   : Predictor.java
- * 							ProductionRule.java + Element.java
+ * 			    ProductionRule.java + Element.java
  * Author                 : Hakki Caner KIRMIZI
  * Description            : A java program which can evaluate an input grammar 
- * 							and computes the first and follow set of it. Then, 
- * 							it constructs a table of this result along with the 
- * 							prediction set for each specific production rule.
+ * 			    and computes the first and follow set of it. Then, 
+ * 			    it constructs a table of this result along with the 
+ * 			    prediction set for each specific production rule.
  * Environment            : Windows-7 Entreprise
  * Java IDE               : Eclipse Build id: 20100218-1602
  * Compiler               : javac 1.6.0_16
