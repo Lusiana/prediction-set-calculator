@@ -1,6 +1,7 @@
 public class Element {
 	
 	private String element;
+	private boolean isStartSymbol;
 	private boolean visitedFirst;
 	private boolean symbolDerivesEmpty;
 	
@@ -10,6 +11,14 @@ public class Element {
 	
 	public String getElement() {
 		return this.element;
+	}
+	
+	public void setIsStartSymbol(boolean b) {
+		this.isStartSymbol = b;
+	}
+	
+	public boolean isStartSymbol() {
+		return this.isStartSymbol;
 	}
 	
 	public void setVisitedFirst(boolean b) {
@@ -49,7 +58,8 @@ public class Element {
 	public void printElemInfo(){
 		System.out.print("name: " + this.element + " --> ");
 		System.out.print("visitedFirst: " + this.visitedFirst + " ");
-		System.out.println("symbolDerivesEmpty: " + this.symbolDerivesEmpty);
+		System.out.print("symbolDerivesEmpty: " + this.symbolDerivesEmpty + " ");
+		System.out.println("isStart: " + this.isStartSymbol + " ");
 		//System.out.println("FirstSet: " + FirstSet);
 		//System.out.println("FollowSet: " + FollowSet);
 		//System.out.println("PredictSet: " + PredictSet);
