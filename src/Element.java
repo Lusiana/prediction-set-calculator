@@ -3,6 +3,7 @@ public class Element {
 	private String element;
 	private boolean isStartSymbol;
 	private boolean visitedFirst;
+	private boolean visitedFollow;
 	private boolean symbolDerivesEmpty;
 	
 	Element(String element) {
@@ -27,6 +28,14 @@ public class Element {
 	
 	public boolean isVisitedFirst() {
 		return this.visitedFirst;
+	}
+	
+	public void setVisitedFollow(boolean b) {
+		this.visitedFollow = b;
+	}
+	
+	public boolean isVisitedFollow() {
+		return this.visitedFollow;
 	}
 	
 	public void setSymbolDerivesEmpty(boolean b) {

@@ -20,7 +20,6 @@
  * =============================================================================
  */
 
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -39,8 +38,7 @@ public class Predictor {
 	private ArrayList<Element> elements = new ArrayList<Element>();
 	private ArrayList<Element> terminals = new ArrayList<Element>();
 	private ArrayList<Element> nonterminals = new ArrayList<Element>();
-	private HashMap<Element, ProductionRule> allProductionRules = 
-								new HashMap<Element, ProductionRule>();
+	private HashMap<Element, ProductionRule> allProductionRules = new HashMap<Element, ProductionRule>();
 	private ArrayList<Element> LHSList = new ArrayList<Element>();
 	private HashSet<HashSet<Element>> answerSet = new HashSet<HashSet<Element>>();
 	private String grammar = "";
@@ -60,7 +58,10 @@ public class Predictor {
 		p.constructTerminalNonterminalList();
 		System.out.println("ter: " + p.terminals);
 		System.out.println("nonter: " + p.nonterminals);
+		p.createProductionRules();
+		p.setSymbolsDeriveEmpty();
 		p.computeFirstSet();
+		//p.computeFollowSet();
 	}
 
 	/*
@@ -84,12 +85,12 @@ public class Predictor {
 	/*
 	 * constructElementList: Constructs the element list using pattern search
 	 * over the line buffer
-	 * 
 	 * @line: line buffer from stdin
 	 */
 	public void constructElementList(String line) {
 		Pattern identifierPattern = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
-		Pattern stringPattern = Pattern.compile("'([^\\\\']+|\\\\([btnfr\"'\\\\]|[0-3]?[0-7]{1,2}|u[0-9a-fA-F]{4}))*'|\"([^\\\\\"]+|\\\\([btnfr\"'\\\\]|[0-3]?[0-7]{1,2}|u[0-9a-fA-F]{4}))*\"");
+		Pattern stringPattern = Pattern
+				.compile("'([^\\\\']+|\\\\([btnfr\"'\\\\]|[0-3]?[0-7]{1,2}|u[0-9a-fA-F]{4}))*'|\"([^\\\\\"]+|\\\\([btnfr\"'\\\\]|[0-3]?[0-7]{1,2}|u[0-9a-fA-F]{4}))*\"");
 		Matcher stringMatcher = stringPattern.matcher(line);
 		Matcher identifierMatcher = identifierPattern.matcher(line);
 		Element e = null;
@@ -132,23 +133,20 @@ public class Predictor {
 
 	/*
 	 * computeFirstSet: Triggers the computation of the first set of the each
-	 * grammar rule return a set; i.e. we do not want any duplicate inside
+	 * grammar rule.
 	 */
 	public void computeFirstSet() {
 		Element LHS = null;
 
 		for (Element i : nonterminals)
 			i.setVisitedFirst(false);
-		
-		createProductionRules();
-		setStartSymbol();
-		setSymbolsDeriveEmpty();
-		
+
 		for (int i = 0; i < allProductionRules.size(); i++) {
 			LHS = LHSList.get(i);
 			internalFirst(LHS);
 			for (HashSet<Element> e : answerSet) {
-				allProductionRules.get(LHS).addToFirstSet(e);
+				//if ((LHS.isSymbolDerivesEmpty()) && (e.contains(null)))
+					allProductionRules.get(LHS).addToFirstSet(e);
 			}
 			allProductionRules.get(LHS).printRuleInfo();
 			answerSet.clear();
@@ -156,7 +154,7 @@ public class Predictor {
 	}
 
 	/*
-	 * createProdutionRules Initializes a ProductionRule instance for each
+	 * createProdutionRules: Initializes a ProductionRule instance for each
 	 * grammar rule in the grammar input and put each one in a HashMap with a
 	 * unique key
 	 */
@@ -177,13 +175,13 @@ public class Predictor {
 				LHS = new Element(splitted[0].trim());
 				if (isStart) {
 					LHS.setIsStartSymbol(true);
-					LHS.printElemInfo();
+					//LHS.printElemInfo();
 					isStart = false;
-					System.out.println("if: " + isStart);
+					//System.out.println("if: " + isStart);
 				} else {
 					LHS.setIsStartSymbol(false);
-					System.out.println("else: " + isStart);
-					LHS.printElemInfo();
+					//System.out.println("else: " + isStart);
+					//LHS.printElemInfo();
 				}
 				LHSList.add(LHS);
 				ProductionRule rule = new ProductionRule(id);
@@ -208,8 +206,7 @@ public class Predictor {
 	}
 
 	/*
-	 * internalFirst:
-	 * Computes the first set of specific grammar rule
+	 * internalFirst: Computes the first set of specific grammar rule
 	 * @XB: the each side of the production rule; this should be tokenized so
 	 * then X is the first token of the string, the rest is B
 	 */
@@ -221,32 +218,34 @@ public class Predictor {
 
 		tokenizedXB = tokenize(XB);
 		len = tokenizedXB.length;
-		
-		for (int i=1; i<len; i++) {
+
+		for (int i = 1; i < len; i++) {
 			rest += tokenizedXB[i];
 			rest += " ";
 		}
 
 		/* Case-1: XB is empty */
 		System.out.println("XB: " + XB.getElement() + " $");
-		//System.out.print("Step10 --> ");
+		// System.out.print("Step10 --> ");
 		if (len == 0) {
-			hs.add(null);
-			answerSet.add(hs);
+			//hs.add(null);
+			//answerSet.add(hs);
+			//return hs;
+			hs.clear();
 			return hs;
 		}
-		
-		//System.out.print("Step11 --> ");
+
+		// System.out.print("Step11 --> ");
 		/* Case-2: X is a terminal */
 		Element X = new Element(tokenizedXB[0]);
 		Element B = new Element(rest);
-		//System.out.println("X: " + X);
-		//System.out.println("B: " + B);
-		
+		// System.out.println("X: " + X);
+		// System.out.println("B: " + B);
+
 		if (LHSList.contains(X)) {
 			int n = LHSList.indexOf(X);
 			if ((terminals.contains(X)) && !(LHSList.get(n).isStartSymbol())) {
-				//X.printElemInfo();
+				// X.printElemInfo();
 				hs.add(X);
 				answerSet.add(hs);
 				return hs;
@@ -260,50 +259,63 @@ public class Predictor {
 		}
 
 		/* Case-3: X is a nonterminal */
-		//System.out.print("Step12 --> ");
+		// System.out.print("Step12 --> ");
 		hs.clear();
 		if (!X.isVisitedFirst()) {
-			//System.out.print("Step13 --> ");
+			// System.out.print("Step13 --> ");
 			X.setVisitedFirst(true);
 			System.out.println("X: " + X.getElement() + " $");
 			if (LHSList.contains(X)) {
 				ProductionRule pr = allProductionRules.get(X);
 				ListIterator<Element> li = pr.getRHSList().listIterator();
-				while(li.hasNext()) {
+				while (li.hasNext()) {
 					Element rhs = li.next();
-					System.out.println("rhs: " +  rhs + " $ ");
-					//System.out.print("Step14 --> ");
+					System.out.println("rhs: " + rhs + " $ ");
+					// System.out.print("Step14 --> ");
 					answerSet.add(internalFirst(rhs));
 				}
 			}
 		}
 		if (LHSList.contains(X)) {
 			int x = LHSList.indexOf(X);
-			//System.out.println("lhsget: " + LHSList.get(x));
-			//System.out.print("Step15 --> ");
+			// System.out.println("lhsget: " + LHSList.get(x));
+			// System.out.print("Step15 --> ");
 			if (LHSList.get(x).isSymbolDerivesEmpty()) {
 				System.out.println("B: " + B + " $");
+				//hs.add(null);
+				//answerSet.add(hs);
 				answerSet.add(internalFirst(B));
 				System.out.println("answerset: " + answerSet);
 			}
 		}
-		
+
 		System.out.print("Step16 --> ");
 		return hs;
 	}
 
+	/*
+	 * tokenize: Tokenizes any LHS or RHS part of the production rule according 
+	 * to white space check.
+	 * @e: An element version of the LHS or RHS
+	 * returns: A splitted version of the argument
+	 */
 	public String[] tokenize(Element e) {
 		String[] tokenized = e.getElement().split(" ");
 		return tokenized;
 	}
 
+	/* 
+	 * setSymbolIsDeriveEmpty: Visits each member in the RHSList of each 
+	 * element, searches for any null character (or white space char) in the 
+	 * list and sets its isSymbolDerivesEmpty according to this computation
+	 */
 	public void setSymbolsDeriveEmpty() {
 		for (int i = 0; i < LHSList.size(); i++) {
 			ProductionRule pr = allProductionRules.get(LHSList.get(i));
 			ListIterator<Element> li = pr.getRHSList().listIterator();
-			while(li.hasNext()) {
+			while (li.hasNext()) {
 				String next = li.next().getElement();
-				if(Pattern.matches("[\\s]+", next))
+				if (Pattern.matches("[\\s]+", next))
 					LHSList.get(i).setSymbolDerivesEmpty(true);
 				else
 					LHSList.get(i).setSymbolDerivesEmpty(false);
@@ -311,10 +323,113 @@ public class Predictor {
 		}
 	}
 
-	public void setStartSymbol() {
-		LHSList.get(0).setIsStartSymbol(true);
-		for (int i = 1; i < LHSList.size(); i++) {
-			LHSList.get(i).setIsStartSymbol(false);
+	public void computeFollowSet() {
+		Element LHS = null;
+		
+		for (Element i : nonterminals)
+			i.setVisitedFollow(false);
+		
+		createProductionRules();
+		setSymbolsDeriveEmpty();
+		
+		for (int i = 0; i < allProductionRules.size(); i++) {
+			LHS = LHSList.get(i);
+			internalFollow(LHS);
+			for (HashSet<Element> e : answerSet) {
+				allProductionRules.get(LHS).addToFollowSet(e);
+			}
+			allProductionRules.get(LHS).printRuleInfo();
+			answerSet.clear();
 		}
 	}
+	
+	public HashSet<Element> internalFollow(Element A) {
+		HashSet<Element> hs = new HashSet<Element>();
+		ArrayList<Element> occurrences = new ArrayList<Element>();
+		
+		hs.clear();
+		if (!A.isVisitedFollow()) {
+			A.setVisitedFollow(true);
+			System.out.println("A: " + A);
+			//System.out.println("occ: " + occurrences);
+			occurrences = findOccurrences(A);
+			System.out.println("occ: " + occurrences);
+			for (Element o: occurrences) {
+				//System.out.println("tail: " + Tail(o, A));
+				answerSet.add(internalFirst(Tail(o, A)));
+				System.out.println("ans1: " + answerSet);
+				if (allDeriveEmpty((Tail(o, A)))) {
+					Element LHS = findLHSOfProduction(o);
+					answerSet.add(internalFollow(LHS));
+					System.out.println("ans2: " + answerSet);
+				} else {
+					hs.add(new Element("(eof"));
+					answerSet.add(hs);
+					return hs;
+				}
+			}
+			
+		}
+		return hs;
+	}
+	
+	public ArrayList<Element> findOccurrences(Element A) {
+		ArrayList<Element> occurrences = new ArrayList<Element>();
+		Pattern pattern = Pattern.compile(A.getElement());
+		Matcher matcher = null;
+		int size = 0;
+		
+		for (int i = 0; i < LHSList.size(); i++) {
+			size = allProductionRules.get(LHSList.get(i)).getRHSList().size();
+			for (int j = 0; j < size; j++) {
+				 Element elem = allProductionRules.get(LHSList.get(i)).getRHSList().get(j);
+				 //System.out.println("elem: " + elem);
+				 matcher = pattern.matcher(elem.getElement());
+				 if (matcher.find())
+					 occurrences.add(elem);
+			}
+		}
+		return occurrences;
+	}
+
+	public Element Tail(Element o, Element A) {
+		Element tail = null;
+		String s = null;
+		int index = -1, len = 0;
+		
+		index = o.getElement().indexOf(A.getElement());
+		len = o.getElement().length();
+		s = o.getElement().substring(index+1, len).trim();
+		tail = new Element(s);
+		
+		return tail;
+	}
+
+	public boolean allDeriveEmpty(Element e) {
+		String[] tokenized = null;
+		int i = -1;
+		
+		tokenized = tokenize(e);
+		for (String s : tokenized) {
+			Element elem = new Element(s);
+			if (LHSList.contains(elem)) {
+				i = LHSList.indexOf(elem);
+				if ((LHSList.get(i).isSymbolDerivesEmpty()) || 
+					(terminals.contains(elem)))
+					return false;
+			}
+		}
+		return true;
+	}
+	
+	public Element findLHSOfProduction(Element e) {
+		Element found = null;
+
+		for (int i = 0; i < LHSList.size(); i++) {
+			if (allProductionRules.get(LHSList.get(i)).getRHSList().contains(e))
+				found = LHSList.get(i);
+		}
+		return found;
+	}
+	
 }
