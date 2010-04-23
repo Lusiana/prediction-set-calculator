@@ -61,8 +61,6 @@ public class Predictor {
 		//System.out.println("ter: " + p.terminals);
 		//System.out.println("nonter: " + p.nonterminals);
 		p.computeFirstSet();
-		System.out.println("final answerset: " + p.answerSet);
-
 	}
 
 	/*
@@ -137,7 +135,7 @@ public class Predictor {
 	 * grammar rule return a set; i.e. we do not want any duplicate inside
 	 */
 	public void computeFirstSet() {
-		Element keyLHS = null;
+		Element LHS = null;
 
 		for (Element i : nonterminals)
 			i.setVisitedFirst(false);
@@ -146,10 +144,13 @@ public class Predictor {
 		setSymbolsDeriveEmpty();
 		
 		for (int i = 0; i < allProductionRules.size(); i++) {
-			keyLHS = LHSList.get(i);
-			// pr = allProductionRules.get(keyLHS);
-			// pr.printRuleInfo();
-			answerSet.add(internalFirst(keyLHS));
+			LHS = LHSList.get(i);
+			internalFirst(LHS);
+			for (HashSet<Element> e : answerSet) {
+				allProductionRules.get(LHS).addToFirstSet(e);
+			}
+			allProductionRules.get(LHS).printRuleInfo();
+			answerSet.clear();
 		}
 	}
 
@@ -214,47 +215,42 @@ public class Predictor {
 			rest += tokenizedXB[i];
 			rest += " ";
 		}
-		
-		//if (len > 1)
-		//	B = new Element(rest);
 
 		/* Case-1: XB is empty */
-		System.out.println("XB: " + XB.getElement());
-		
-		System.out.print("Step10 --> ");
-		if (len == 0 || Pattern.matches("[\\s]+", XB.getElement())) {
+		System.out.println("XB: " + XB.getElement() + " $");
+		//System.out.print("Step10 --> ");
+		if (len == 0) {
 			hs.add(null);
 			answerSet.add(hs);
 			return hs;
 		}
 		
-		System.out.print("Step11 --> ");
+		//System.out.print("Step11 --> ");
 		/* Case-2: X is a terminal */
 		Element X = new Element(tokenizedXB[0]);
 		Element B = new Element(rest);
 		//System.out.println("X: " + X);
 		//System.out.println("B: " + B);
 		if (terminals.contains(X)) {
-			System.out.println(terminals.contains(X));
 			hs.add(X);
 			answerSet.add(hs);
 			return hs;
 		}
 
 		/* Case-3: X is a nonterminal */
-		System.out.print("Step12 --> ");
+		//System.out.print("Step12 --> ");
 		hs.clear();
 		if (!X.isVisitedFirst()) {
-			System.out.print("Step13 --> ");
+			//System.out.print("Step13 --> ");
 			X.setVisitedFirst(true);
-			System.out.println("X: " + X.getElement());
+			System.out.println("X: " + X.getElement() + " $");
 			if (LHSList.contains(X)) {
 				ProductionRule pr = allProductionRules.get(X);
 				ListIterator<Element> li = pr.getRHSList().listIterator();
 				while(li.hasNext()) {
 					Element rhs = li.next();
 					System.out.println("rhs: " +  rhs + " $ ");
-					System.out.print("Step14 --> ");
+					//System.out.print("Step14 --> ");
 					answerSet.add(internalFirst(rhs));
 				}
 			}
@@ -262,9 +258,9 @@ public class Predictor {
 		if (LHSList.contains(X)) {
 			int x = LHSList.indexOf(X);
 			//System.out.println("lhsget: " + LHSList.get(x));
-			System.out.print("Step15 --> ");
+			//System.out.print("Step15 --> ");
 			if (LHSList.get(x).isSymbolDerivesEmpty()) {
-				System.out.println("B: " + B);
+				System.out.println("B: " + B + " $");
 				answerSet.add(internalFirst(B));
 				System.out.println("answerset: " + answerSet);
 			}
@@ -283,16 +279,12 @@ public class Predictor {
 		for (int i = 0; i < LHSList.size(); i++) {
 			ProductionRule pr = allProductionRules.get(LHSList.get(i));
 			ListIterator<Element> li = pr.getRHSList().listIterator();
-			
 			while(li.hasNext()) {
 				String next = li.next().getElement();
-				if(Pattern.matches("[\\s]+", next)) {
-					//System.out.println("true: " + next);
+				if(Pattern.matches("[\\s]+", next))
 					LHSList.get(i).setSymbolDerivesEmpty(true);
-				} else  {
-					//System.out.println("false: " + next);
+				else
 					LHSList.get(i).setSymbolDerivesEmpty(false);
-				}
 			}
 		}
 	}
