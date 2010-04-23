@@ -56,10 +56,10 @@ public class Predictor {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		//System.out.println("elementslist: " + p.elements);
+		System.out.println("elementslist: " + p.elements);
 		p.constructTerminalNonterminalList();
-		//System.out.println("ter: " + p.terminals);
-		//System.out.println("nonter: " + p.nonterminals);
+		System.out.println("ter: " + p.terminals);
+		System.out.println("nonter: " + p.nonterminals);
 		p.computeFirstSet();
 	}
 
@@ -141,6 +141,7 @@ public class Predictor {
 			i.setVisitedFirst(false);
 		
 		createProductionRules();
+		setStartSymbol();
 		setSymbolsDeriveEmpty();
 		
 		for (int i = 0; i < allProductionRules.size(); i++) {
@@ -165,6 +166,7 @@ public class Predictor {
 		Element RHSRule = null;
 		String[] splitted = null;
 		String line = null;
+		boolean isStart = true;
 		int splitTimes = 0;
 		int id = 0;
 
@@ -173,6 +175,16 @@ public class Predictor {
 				splitted = line.split("[:|;]");
 				splitTimes = splitted.length;
 				LHS = new Element(splitted[0].trim());
+				if (isStart) {
+					LHS.setIsStartSymbol(true);
+					LHS.printElemInfo();
+					isStart = false;
+					System.out.println("if: " + isStart);
+				} else {
+					LHS.setIsStartSymbol(false);
+					System.out.println("else: " + isStart);
+					LHS.printElemInfo();
+				}
 				LHSList.add(LHS);
 				ProductionRule rule = new ProductionRule(id);
 				allProductionRules.put(LHS, rule);
@@ -187,7 +199,6 @@ public class Predictor {
 						rule.addToRHSList(RHSRule);
 					}
 				}
-
 				id++;
 			}
 		} catch (IOException e) {
@@ -231,10 +242,21 @@ public class Predictor {
 		Element B = new Element(rest);
 		//System.out.println("X: " + X);
 		//System.out.println("B: " + B);
-		if (terminals.contains(X)) {
-			hs.add(X);
-			answerSet.add(hs);
-			return hs;
+		
+		if (LHSList.contains(X)) {
+			int n = LHSList.indexOf(X);
+			if ((terminals.contains(X)) && !(LHSList.get(n).isStartSymbol())) {
+				//X.printElemInfo();
+				hs.add(X);
+				answerSet.add(hs);
+				return hs;
+			}
+		} else {
+			if (terminals.contains(X)) {
+				hs.add(X);
+				answerSet.add(hs);
+				return hs;
+			}
 		}
 
 		/* Case-3: X is a nonterminal */
@@ -289,4 +311,10 @@ public class Predictor {
 		}
 	}
 
+	public void setStartSymbol() {
+		LHSList.get(0).setIsStartSymbol(true);
+		for (int i = 1; i < LHSList.size(); i++) {
+			LHSList.get(i).setIsStartSymbol(false);
+		}
+	}
 }
