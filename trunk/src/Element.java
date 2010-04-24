@@ -42,7 +42,7 @@ public class Element {
 		this.symbolDerivesEmpty = b;
 	}
 	
-	public boolean isSymbolDerivesEmpty() {
+	public boolean symbolDerivesEmpty() {
 		return this.symbolDerivesEmpty;
 	}
 	
