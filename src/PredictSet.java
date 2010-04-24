@@ -1,4 +1,5 @@
 /* =============================================================================
+ * 
  * Name                   : Predictor.java
  * 			    ProductionRule.java + Element.java
  * Author                 : Hakki Caner KIRMIZI
@@ -13,10 +14,6 @@
  * Project Hosting        : http://code.google.com/p/prediction-set-calculator/
  * License                : GNU General Public License v3
  * 
- * Notes:
- * ------
- * 1) isSymbolDerivesEmpty property is held in the object where in symbolDerivesEmptyList for 
- *    each nonterminal.
  * =============================================================================
  */
 
@@ -25,10 +22,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ListIterator;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -44,13 +38,14 @@ public class PredictSet {
 								new ArrayList<ProductionRule>();
 	
 	private String grammar = "";
-	private static int numberOfRules = 0;
 	
 	/*
 	 * main: Main procedure of the program
 	 */
 	public static void main(String[] args) {
+		HashSet<Element> ans = new HashSet<Element>();
 		PredictSet ps = new PredictSet();
+		
 		try {
 			ps.parseInput();
 		} catch (IOException e) {
@@ -59,22 +54,15 @@ public class PredictSet {
 		
 		ps.constructTerminalNonterminalList();
 		ps.createProductionRules();
-		//System.out.println(allProductionRules.keySet());
-		//System.out.println(allProductionRules.toString());
 		
-		//ps.setSymbolsDeriveEmpty();
 		// compute the predict set for this rule
 		for (ProductionRule pr : allProductionRules) {
-			ps.computePredictSet(pr);
+			ans = ps.computePredictSet(pr);
+			pr.addToPredictSet(ans);
 			pr.printRuleInfo();
 		}
 		
-		//System.out.println("elementslist: " + ps.elements);
-		//System.out.println("ter: " + ps.terminals);
-		//System.out.println("nonter: " + ps.nonterminals);
-		//System.out.println("lhs: " + ps.LHSList);
-		//ps.computePredictSet();
-		//ps.outputResult();
+		
 	}
 	
 	/*
@@ -89,7 +77,6 @@ public class PredictSet {
 			grammar += line;
 			if (line.contains(";")) {
 				grammar += newline;
-				numberOfRules++;
 			}
 		}
 	}
@@ -123,7 +110,8 @@ public class PredictSet {
 	/*
 	 * constructTerminalNonTerminalList: Constructs two lists: 'terminals' and
 	 * 'nonterminals' checking for any repeats of the element in the elements
-	 * list
+	 * list and comparing that does the element appears on the RHS also appears
+	 * on the LHS 
 	 */
 	public void constructTerminalNonterminalList() {
 		Element elem = null;
@@ -146,10 +134,11 @@ public class PredictSet {
 		}
 	}
 	
+	
 	/*
 	 * createProdutionRules: Initializes a ProductionRule instance for each
-	 * grammar rule in the grammar input and put each one in a HashMap with a
-	 * unique key
+	 * grammar rule in the grammar input and put each one in an ArrayList of 
+	 * 'allProductionRules'
 	 */
 	public void createProductionRules() {
 		HashSet<Element> ans = new HashSet<Element>();
@@ -197,6 +186,7 @@ public class PredictSet {
 							lhs.setSymbolDerivesEmpty(true);
 							if (!symbolDerivesEmptyList.contains(lhs))
 								symbolDerivesEmptyList.add(lhs);
+							pr.setRuleDerivesEmpty(true);
 							rhsRule = new Element("null");
 							pr.addRHS(rhsRule);
 							ans.add(new Element("null"));
@@ -215,20 +205,32 @@ public class PredictSet {
 	}
 
 	
+	/*
+	 * computePredictSet: Computes the prediction set of the given Production
+	 * Rule either to run First() or Follow() algorithm
+	 * @pr: The Production Rule whose prediction set needs to be computed
+	 * returns: A HashSet of Elements which contains the result
+	 */
 	public HashSet<Element> computePredictSet(ProductionRule pr) {
 		HashSet<Element> ans = new HashSet<Element>();
 		ans = First(pr.getRHS().get(0));
+		pr.addToFirstSet(ans);
 		if (ruleDerivesEmpty(pr)) {
 			for (Element e : Follow(pr.getLHS()))
 				ans.add(e);
+			pr.addToFollowSet(ans);
+			//pr.printRuleInfo();
 		}
-		pr.addToFirstSet(ans);
+		
+		pr.printRuleInfo();
 		return ans;
 	}
 	
+	
 	/*
-	 * First: Triggers the computation of the first set of the each
-	 * grammar rule.
+	 * First: Triggers the computation of the first set
+	 * @alpha: The LHS element of a Production Rule
+	 * returns: A HashSet of Elements which contains the result
 	 */
 	public HashSet<Element> First(Element alpha) {
 		HashSet<Element> ans = new HashSet<Element>();
@@ -243,8 +245,8 @@ public class PredictSet {
 	
 	/*
 	 * internalFirst: Computes the first set of specific grammar rule
-	 * @XB: the each side of the production rule; this should be tokenized so
-	 * then X is the first token of the string, the rest is B
+	 * @XB: The Element whose first set needs to be computed
+	 * returns: A HashSet of Elements which contains the result
 	 */
 	public HashSet<Element> internalFirst(Element XB) {
 		HashSet<Element> ans = new HashSet<Element>();
@@ -278,7 +280,7 @@ public class PredictSet {
 		
 		/* Case-3: X is a nonterminal */
 		ans.clear();
-		if (!X.isVisitedFirst()) {
+		if (!X.visitedFirst()) {
 			X.setVisitedFirst(true);
 			//System.out.println("X: " + X.getElement() + " $");
 			for (ProductionRule pr : allProductionRules) {
@@ -301,29 +303,202 @@ public class PredictSet {
 		return ans;
 	}
 	
+	
 	/*
 	 * tokenize: Tokenizes any LHS or RHS part of the production rule according 
 	 * to white space check.
 	 * @e: An element version of the LHS or RHS
-	 * returns: A splitted version of the argument
+	 * returns: A String array (splitted version) of the argument
 	 */
 	public String[] tokenize(Element e) {
 		String[] tokenized = e.getElement().split(" ");
 		return tokenized;
 	}
 	
+	
+	/* 
+	 * ruleDerivesEmpty: Checks whether the given rule makes any derivation
+	 * either directly (it has a LHS which derives lambda directly) or
+	 * indirectly (all RHS Elements of this rule derives empty one by one)
+	 * @pr: Production rule to check whether it derives empty or not
+	 * returns: true, if argument pr derives empty anyhow; false otherwise
+	 */
 	public boolean ruleDerivesEmpty(ProductionRule pr) {
 		String[] splitted = null;
+		int count = 0;
+		
 		splitted = tokenize(pr.getRHS().get(0));
 		
 		for (Element e : symbolDerivesEmptyList) {
 			for (String s : splitted) {
-				if ((pr.getLHS().equals(e)) || pr.getLHS().equals(s))
-					return true;
+				if (s.equals(e.getElement())) {
+					count += 1;
+				}
 			}
 		}
 		
-		return false;
+		if ((count == splitted.length) || (pr.ruleDerivesEmpty())) {
+			pr.setRuleDerivesEmpty(true);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	
+	/*
+	 * Follow: Triggers the computation of the follow set
+	 * @A: The LHS element of a Production Rule
+	 * returns: A HashSet of Elements which contains the result
+	 */
+	public HashSet<Element> Follow(Element A) {
+		HashSet<Element> ans = new HashSet<Element>();
+		
+		for (Element e : nonterminals)
+			e.setVisitedFollow(false);
+		ans = internalFollow(A);
+	
+		return ans;
+	}
+	
+	
+	/*
+	 * internalFollow: Computes the follow set of specific grammar rule
+	 * @A: The Element whose follow set need to be computed
+	 * returns: A HashSet of Elements which contains the result
+	 */
+	public HashSet<Element> internalFollow(Element A) {
+		ArrayList<Element> occurrences = new ArrayList<Element>();
+		HashSet<Element> ans = new HashSet<Element>();
+		
+		ans.clear();
+		//System.out.println("what came: " + A + " visited? " + A.visitedFollow());
+		if (!A.visitedFollow()) {
+			
+			A.setVisitedFollow(true);
+			//System.out.println("in: " + A.visitedFollow());
+			//System.out.println("A: " + A);
+			occurrences = findOccurrences(A);
+			//System.out.println("occ: " + occurrences);
+			
+			for (Element o: occurrences) {
+				//System.out.println("tail: " + Tail(o, A));
+				for (Element e : internalFirst(tail(o, A)))
+					ans.add(e);
+
+				//System.out.println("ans1: " + ans);
+				//System.out.println("tail: " + "$" + Tail(o, A) + "$");
+				//System.out.println("allderive: " + allDeriveEmpty((Tail(o, A))));
+				if (allDeriveEmpty((tail(o, A)))) {
+					//System.out.println("im in");
+					Element LHS = findLHSOfProduction(o);
+					//System.out.println("lhs: " + LHS + " of " + o);
+					for (Element e : internalFollow(LHS))
+						ans.add(e);
+					//System.out.println("ans2: " + ans);
+				}
+			}
+			
+		}
+		return ans;
+	}
+	
+	
+	/* 
+	 * findOccurences: Find any RHS occurrences of given Element
+	 * @A: The Element whose RHS occurrences need to be found
+	 * returns: An ArrayList which contains all the RHS occurrences of argument A
+	 */
+	public ArrayList<Element> findOccurrences(Element A) {
+		ArrayList<Element> occurrences = new ArrayList<Element>();
+		String[] tokenized = null;
+		
+		for (ProductionRule pr : allProductionRules) {
+			Element e = pr.getRHS().get(0);
+			tokenized = tokenize(e);
+			for (String s : tokenized) {
+				if (s.equals(A.getElement()))
+					if (!occurrences.contains(e))
+						 occurrences.add(e);
+			}
+		}
+		
+		return occurrences;
+	}
+
+	
+	/*
+	 * tail: Finds the following Element(s) of a given Element (actually, we
+	 * should say element sets), e.g. tail(y) returns 'B C' for the grammar 
+	 * rule A : a y B C
+	 * @o: The Element (sets) which is going to be searched for tail
+	 * @A: The Element which is going to truncate argument o
+	 * returns: The part left (tail) after truncate
+	 */
+	public Element tail(Element o, Element A) {
+		Element tail = null;
+		String s = "";
+		int save = -1;
+		String[] tokenized = tokenize(o);
+		
+		for (int i=0; i<tokenized.length; i++) {
+			if (tokenized[i].equals(A.getElement()))
+				save = i;
+		}
+		save += 1;
+		for (int i=save; i<tokenized.length; i++) {
+			s += tokenized[i];
+			s += " ";
+		}
+		
+		tail = new Element(s.trim());
+		return tail;
+	}
+	
+	
+	/*
+	 * allDeriveEmpty: Checks whether given element is a white space or derives
+	 * empty or is a terminal
+	 * @e: The element whose evaluation needs to be done
+	 * returns: true, if it suffices the check arguments; false, otherwise
+	 */
+	public boolean allDeriveEmpty(Element e) {
+		String[] tokenized = tokenize(e);
+		
+		for (String X : tokenized) {
+			Element token = new Element(X);
+			if (token.getElement().length() > 0)
+				if ((!symbolDerivesEmptyList.contains(token)) || (terminals.contains(token)))
+					return false; 
+		}
+		return true;
+	}
+
+	
+	/*
+	 * findLHSOfProduction: Finds the left hand side of the given element
+	 * @e: The element whose LHS needs to be found
+	 * returns: the LHS Element of e
+	 */
+	public Element findLHSOfProduction(Element e) {
+		Element found = null;
+
+		for (ProductionRule pr : allProductionRules) {
+			if (pr.getRHS().contains(e))
+				found = pr.getLHS();
+		}
+		return found;
+	}
+	
+	
+	/*
+	 * printAllLists: Prints the all lists initialized before computation
+	 */
+	public void printAllLists() {
+		System.out.println("All-Elements-List: " + elements);
+		System.out.println("Terminals-List: " + terminals);
+		System.out.println("Nonterminals-List: " + nonterminals);
+		System.out.println("Symbol-Derives-Empty-List: " + symbolDerivesEmptyList);
 	}
 	
 }

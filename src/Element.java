@@ -26,7 +26,7 @@ public class Element {
 		this.visitedFirst = b;
 	}
 	
-	public boolean isVisitedFirst() {
+	public boolean visitedFirst() {
 		return this.visitedFirst;
 	}
 	
@@ -34,7 +34,7 @@ public class Element {
 		this.visitedFollow = b;
 	}
 	
-	public boolean isVisitedFollow() {
+	public boolean visitedFollow() {
 		return this.visitedFollow;
 	}
 	
