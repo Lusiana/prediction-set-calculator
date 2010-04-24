@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.ListIterator;
@@ -64,9 +65,8 @@ public class Predictor {
 		//System.out.println("ter: " + p.terminals);
 		//System.out.println("nonter: " + p.nonterminals);
 		//System.out.println("lhs: " + p.LHSList);
-		
-		//p.computeFirstSet();
-		p.computeFollowSet();
+		p.computePredictSet();
+		p.outputResult();
 	}
 
 	
@@ -150,7 +150,6 @@ public class Predictor {
 		Element LHS = null;
 		Element RHSRule = null;
 		String[] splitted = null;
-		String[] splittedRule = null;
 		String line = null;
 		boolean isStart = true;
 		int splitTimes = 0;
@@ -193,12 +192,19 @@ public class Predictor {
 
 	}
 	
+	public void computePredictSet() {
+		computeFirstSet();
+		computeFollowSet();
+	}
+	
 	
 	/*
 	 * computeFirstSet: Triggers the computation of the first set of the each
 	 * grammar rule.
 	 */
 	public void computeFirstSet() {
+		ArrayList<HashSet<Element>> firstset = new ArrayList<HashSet<Element>>();
+		HashSet<Element> hs = new HashSet<Element>();
 		Element LHS = null;
 
 		for (Element i : nonterminals)
@@ -210,12 +216,21 @@ public class Predictor {
 			for (HashSet<Element> e : answerSet) {
 				//if ((LHS.isSymbolDerivesEmpty()) && (e.contains(null)))
 				allProductionRules.get(LHS).addToFirstSet(e);
-				//if (LHS.isSymbolDerivesEmpty())
-				//	allProductionRules.get(LHS).addToFirstSet(null);
+			}
+			if (LHS.isSymbolDerivesEmpty()) {
+				hs.add(new Element("null"));
+				allProductionRules.get(LHS).addToFirstSet(hs);
+			}
+			firstset = allProductionRules.get(LHS).getFirstSet();
+			for (int j=0; j<firstset.size(); j++) {
+				if(firstset.get(j).isEmpty())
+					firstset.remove(j);
 			}
 			allProductionRules.get(LHS).printRuleInfo();
 			answerSet.clear();
 		}
+		
+		
 	}
 
 	/*
@@ -337,13 +352,11 @@ public class Predictor {
 	}
 
 	public void computeFollowSet() {
+		ArrayList<HashSet<Element>> followset = new ArrayList<HashSet<Element>>();
 		Element LHS = null;
 		
 		for (Element i : nonterminals)
 			i.setVisitedFollow(false);
-		
-		//createProductionRules();
-		//setSymbolsDeriveEmpty();
 		
 		for (int i = 0; i < allProductionRules.size(); i++) {
 			for (Element e : LHSList)
@@ -352,6 +365,11 @@ public class Predictor {
 			internalFollow(LHS);
 			for (HashSet<Element> e : answerSet) {
 				allProductionRules.get(LHS).addToFollowSet(e);
+			}
+			followset = allProductionRules.get(LHS).getFollowSet();
+			for (int j=0; j<followset.size(); j++) {
+				if(followset.get(j).isEmpty())
+					followset.remove(j);
 			}
 			allProductionRules.get(LHS).printRuleInfo();
 			answerSet.clear();
@@ -393,8 +411,6 @@ public class Predictor {
 	
 	public ArrayList<Element> findOccurrences(Element A) {
 		ArrayList<Element> occurrences = new ArrayList<Element>();
-		//Pattern pattern = Pattern.compile(A.getElement());
-		//Matcher matcher = null;
 		int size = 0;
 		
 		for (int i = 0; i < LHSList.size(); i++) {
@@ -407,11 +423,6 @@ public class Predictor {
 							if (!occurrences.contains(elem))
 								 occurrences.add(elem);
 				 }
-				 //System.out.println("elem: " + elem);
-				 //matcher = pattern.matcher(elem.getElement());
-				 //if (matcher.find()) {
-
-				 //}
 			}
 		}
 		return occurrences;
@@ -452,10 +463,6 @@ public class Predictor {
 				}
 			}
 		}
-		
-		//for (int k=0; k<LHSList.size(); k++) 
-		//	LHSList.get(k).printElemInfo();
-		
 		return true;
 	}
 	
@@ -469,4 +476,66 @@ public class Predictor {
 		return found;
 	}
 	
+	public void outputResult() {
+		ArrayList<Element> rhslist = new ArrayList<Element>();
+		boolean firstLine = true;
+		int size = 0;
+		System.out.println("LHS\tRHS\tFIRST\tFOLLOW\tPREDICT");
+		for (int i=0; i<LHSList.size(); i++) {
+			System.out.print(LHSList.get(i) + "\t");
+			rhslist = allProductionRules.get(LHSList.get(i)).getRHSList();
+			size = rhslist.size();
+			for (int j=0; j<size; j++) {
+				if (firstLine) {
+					if (Pattern.matches("[\\s]+", rhslist.get(j).getElement())) {
+						System.out.print("(null)" + "\t");
+						System.out.print(outputSetElements(allProductionRules.get(LHSList.get(i)).getFirstSet()) + "\t");
+						System.out.print(outputSetElements(allProductionRules.get(LHSList.get(i)).getFollowSet()) + "\t");
+						System.out.println("predictset");
+					} else {
+						System.out.print(rhslist.get(j) + "\t");
+						System.out.print(outputSetElements(allProductionRules.get(LHSList.get(i)).getFirstSet()) + "\t");
+						System.out.print(outputSetElements(allProductionRules.get(LHSList.get(i)).getFollowSet()) + "\t");
+						System.out.println("predictset");
+					}						
+					firstLine = false;
+				} else {
+					if (Pattern.matches("[\\s]+", rhslist.get(j).getElement())) {
+						System.out.print("\t" + "(null)" + "\t\t\t");
+						System.out.println(outputSetElements(allProductionRules.get(LHSList.get(i)).getFollowSet()));
+					} else {
+						System.out.print("\t" + rhslist.get(j) + "\t\t\t");
+						System.out.println("predictset");
+					}
+				}
+			}
+			firstLine = true;
+		}
+		
+		//outputSetElements(allProductionRules.get(LHSList.get(0)).getFirstSet());
+		
+	}
+	
+	public String outputSetElements(ArrayList<HashSet<Element>> l) {
+		ArrayList<String> outlist = new ArrayList<String>(); 
+		String s = null;
+		String out = "";
+		
+		for (HashSet<Element> set : l) {
+			for (Element e : set) {
+				s = e.getElement();
+				if (s.contains("\""))
+					s = s.substring(1, s.length()-1);
+				outlist.add(s);
+			}	
+		}
+		Collections.sort(outlist);
+		for (String i : outlist) {
+			out += i;
+			out += " ";
+		}
+		return out;
+	}
+	
+
 }

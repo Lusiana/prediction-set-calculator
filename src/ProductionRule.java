@@ -8,7 +8,7 @@ public class ProductionRule {
 	private ArrayList<Element> RHSList = new ArrayList<Element>();
 	private ArrayList<HashSet<Element>> FirstSet = new ArrayList<HashSet<Element>>();
 	private ArrayList<HashSet<Element>> FollowSet = new ArrayList<HashSet<Element>>();
-	private ArrayList<Element> PredictSet = new ArrayList<Element>();
+	//private ArrayList<Element> PredictSet = new ArrayList<Element>();
 
 	ProductionRule(int id) {
 		this.id = id;
@@ -29,9 +29,17 @@ public class ProductionRule {
 	public void addToFirstSet(HashSet<Element> set) {
 		this.FirstSet.add(set);
 	}
+	
+	public ArrayList<HashSet<Element>> getFirstSet() {
+		return this.FirstSet;
+	}
 
 	public void addToFollowSet(HashSet<Element> set) {
 		this.FollowSet.add(set);
+	}
+	
+	public ArrayList<HashSet<Element>> getFollowSet() {
+		return this.FollowSet;
 	}
 
 	public void printRuleInfo() {
