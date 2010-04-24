@@ -70,7 +70,7 @@ public class ProductionRule {
 		System.out.print("RHS: " + this.rhs + "\t>> ");
 		System.out.print("First: " + this.firstSet + "\t>> ");
 		System.out.println("Follow: " + this.followSet + "\t>>");
-		System.out.println("Predict: " + this.predictSet + "\t>>");
+		System.out.println("Predict: " + this.predictSet);
 	}
 
 }

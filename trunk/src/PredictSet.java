@@ -1,6 +1,6 @@
 /* =============================================================================
  * 
- * Name                   : Predictor.java
+ * Name                   : PredictSet.java
  * 			    ProductionRule.java + Element.java
  * Author                 : Hakki Caner KIRMIZI
  * Description            : A java program which can evaluate an input grammar 
@@ -30,21 +30,20 @@ public class PredictSet {
 
 	/* Global Variables */
 	public static String newline = System.getProperty("line.separator");
-	private ArrayList<Element> elements = new ArrayList<Element>();
 	private ArrayList<Element> terminals = new ArrayList<Element>();
 	private ArrayList<Element> nonterminals = new ArrayList<Element>();
 	private ArrayList<Element> symbolDerivesEmptyList = new ArrayList<Element>();
 	private static ArrayList<ProductionRule> allProductionRules = 
 								new ArrayList<ProductionRule>();
-	
 	private String grammar = "";
+	
 	
 	/*
 	 * main: Main procedure of the program
 	 */
 	public static void main(String[] args) {
-		HashSet<Element> ans = new HashSet<Element>();
 		PredictSet ps = new PredictSet();
+		HashSet<Element> ans = new HashSet<Element>();
 		
 		try {
 			ps.parseInput();
@@ -52,8 +51,10 @@ public class PredictSet {
 			e.printStackTrace();
 		}
 		
-		ps.constructTerminalNonterminalList();
 		ps.createProductionRules();
+		ps.constructIdentifierTerminals();
+		
+		ps.printAllLists();
 		
 		// compute the predict set for this rule
 		for (ProductionRule pr : allProductionRules) {
@@ -61,7 +62,6 @@ public class PredictSet {
 			pr.addToPredictSet(ans);
 			pr.printRuleInfo();
 		}
-		
 		
 	}
 	
@@ -73,7 +73,7 @@ public class PredictSet {
 		String line = null;
 
 		while ((line = in.readLine()) != null && line.length() != 0) {
-			constructElementList(line);
+			constructStrTerminals(line);
 			grammar += line;
 			if (line.contains(";")) {
 				grammar += newline;
@@ -87,50 +87,15 @@ public class PredictSet {
 	 * over the line buffer
 	 * @line: line buffer from stdin
 	 */
-	public void constructElementList(String line) {
-		Pattern identifierPattern = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
+	public void constructStrTerminals(String line) {
 		Pattern stringPattern = Pattern
 				.compile("'([^\\\\']+|\\\\([btnfr\"'\\\\]|[0-3]?[0-7]{1,2}|u[0-9a-fA-F]{4}))*'|\"([^\\\\\"]+|\\\\([btnfr\"'\\\\]|[0-3]?[0-7]{1,2}|u[0-9a-fA-F]{4}))*\"");
 		Matcher stringMatcher = stringPattern.matcher(line);
-		Matcher identifierMatcher = identifierPattern.matcher(line);
 		Element e = null;
 
-		// First add all tokens to terminal list
-		while (identifierMatcher.find()) {
-			e = new Element(identifierMatcher.group());
-			elements.add(e);
-		}
 		while (stringMatcher.find()) {
 			e = new Element(stringMatcher.group());
 			terminals.add(e);
-		}
-	}
-	
-	
-	/*
-	 * constructTerminalNonTerminalList: Constructs two lists: 'terminals' and
-	 * 'nonterminals' checking for any repeats of the element in the elements
-	 * list and comparing that does the element appears on the RHS also appears
-	 * on the LHS 
-	 */
-	public void constructTerminalNonterminalList() {
-		Element elem = null;
-		Element replacer = new Element("_");
-		int found = -1;
-		int size = elements.size();
-
-		for (int i = 0; i < size; i++) {
-			elem = elements.get(i);
-			elements.set(i, replacer);
-			if ((found = elements.indexOf(elem)) != -1) {
-				elements.set(found, replacer);
-				if ((!nonterminals.contains(elem)) && 
-						(!elem.equals(replacer)) && (symbolDerivesEmptyList.contains(elem)))
-					nonterminals.add(elem);
-			} else {
-				if (!nonterminals.contains(elem))
-					terminals.add(elem);
-			}
 		}
 	}
 	
@@ -141,7 +106,6 @@ public class PredictSet {
 	 * 'allProductionRules'
 	 */
 	public void createProductionRules() {
-		HashSet<Element> ans = new HashSet<Element>();
 		BufferedReader in = new BufferedReader(new StringReader(grammar));
 		ProductionRule pr = null;
 		Element lhs = null, rhsRule = null;
@@ -149,11 +113,8 @@ public class PredictSet {
 		String line = null;
 		boolean isStart = true;
 		int splitTimes = 0;
-		
-		//System.out.println(grammar);
 
 		try {
-			
 			// each line represents a whole production rule
 			// e.g. E : Prefix "(" E ")" | v Tail ;
 			while (((line = in.readLine()) != null)) {
@@ -171,6 +132,8 @@ public class PredictSet {
 						isStart = false;
 					} else {
 						lhs.setIsStartSymbol(false);
+						if (!nonterminals.contains(lhs))
+							nonterminals.add(lhs);
 					}
 					
 					// initialize the lhs of this rule
@@ -187,10 +150,11 @@ public class PredictSet {
 							if (!symbolDerivesEmptyList.contains(lhs))
 								symbolDerivesEmptyList.add(lhs);
 							pr.setRuleDerivesEmpty(true);
-							rhsRule = new Element("null");
-							pr.addRHS(rhsRule);
-							ans.add(new Element("null"));
-							pr.addToFirstSet(ans);
+                            //rhsRule = new Element("null");
+							rhsRule = new Element(splitted[i+1]);
+                            pr.addRHS(rhsRule);
+                            //ans.add(new Element("null"));
+                            //pr.addToFirstSet(ans);
 						} else {
 							rhsRule = new Element(splitted[i+1].trim());
 							pr.addRHS(rhsRule);
@@ -203,7 +167,65 @@ public class PredictSet {
 			e.printStackTrace();
 		}
 	}
-
+	
+	
+	/*
+	 * constructTerminalNonTerminalList: Constructs two lists: 'terminals' and
+	 * 'nonterminals' checking for any repeats of the element in the elements
+	 * list and comparing that does the element appears on the RHS also appears
+	 * on the LHS 
+	 */
+	public void constructIdentifierTerminals() {
+		BufferedReader in = new BufferedReader(new StringReader(grammar));
+		Element lhs = null;
+		String[] splitted = null;
+		String line = null;
+		boolean isStart = true;
+		int splitTimes = 0;
+		
+		try {
+			while (((line = in.readLine()) != null)) {
+				splitted = line.split("[:|;]");
+				splitTimes = splitted.length;
+				
+				for (int i=0; i<splitTimes-1; i++) {
+					lhs = new Element(splitted[0].trim());
+					if (isStart) {
+						lhs.setIsStartSymbol(true);
+						if (!nonterminals.contains(lhs))
+							nonterminals.add(lhs);
+						isStart = false;
+					} else {
+						lhs.setIsStartSymbol(false);
+						if (!nonterminals.contains(lhs))
+							nonterminals.add(lhs);
+					}
+					
+					if (!splitted[i+1].contains(";")) {
+						if (Pattern.matches("[\\s]+", splitted[i+1])) {
+							lhs.setSymbolDerivesEmpty(true);
+							if (!symbolDerivesEmptyList.contains(lhs))
+								symbolDerivesEmptyList.add(lhs);
+						} else {
+							String[] splittedRHS = splitted[i+1].split(" ");
+							for (String s : splittedRHS) {
+								if (s.length() > 0) {
+									Element elem = new Element(s);
+									//System.out.println("elem: $" + s + "$");
+									if (!nonterminals.contains(elem))
+										if (!terminals.contains(elem))
+											terminals.add(elem);
+								}
+							}
+						}
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	
 	/*
 	 * computePredictSet: Computes the prediction set of the given Production
@@ -213,16 +235,26 @@ public class PredictSet {
 	 */
 	public HashSet<Element> computePredictSet(ProductionRule pr) {
 		HashSet<Element> ans = new HashSet<Element>();
+		HashSet<Element> follow = new HashSet<Element>();
+		
+		// Compute first set, this is the basic requirement to make prediction
 		ans = First(pr.getRHS().get(0));
 		pr.addToFirstSet(ans);
-		if (ruleDerivesEmpty(pr)) {
-			for (Element e : Follow(pr.getLHS()))
-				ans.add(e);
-			pr.addToFollowSet(ans);
-			//pr.printRuleInfo();
-		}
 		
-		pr.printRuleInfo();
+		// Consider follow set, if production rule derives empty (first set is
+		// not enough to make prediction)
+/*		if (ruleDerivesEmpty(pr)) {
+			follow = Follow(pr.getLHS());
+			pr.addToFollowSet(ans);
+			for (Element e : follow)
+				ans.add(e);
+		// Initialize the follow set computation of the production rule anyway
+		// (although no consideration for prediction set)
+		} else {
+			follow = Follow(pr.getLHS());
+			pr.addToFollowSet(ans);
+		}
+*/		
 		return ans;
 	}
 	
@@ -244,12 +276,14 @@ public class PredictSet {
 	
 	
 	/*
-	 * internalFirst: Computes the first set of specific grammar rule
+	 * internalFirst: Computes the first set of each specific grammar rule
 	 * @XB: The Element whose first set needs to be computed
 	 * returns: A HashSet of Elements which contains the result
 	 */
 	public HashSet<Element> internalFirst(Element XB) {
 		HashSet<Element> ans = new HashSet<Element>();
+		HashSet<Element> tmp = new HashSet<Element>();
+		
 		String[] tokenizedXB = null;
 		String rest = "";
 		int len = 0;
@@ -263,42 +297,68 @@ public class PredictSet {
 		}
 
 		// Case-1: XB is empty
-		//System.out.println("XB: " + XB.getElement() + " $");
-		if (len == 0) {
-			return null;
+		if (len == 0 || Pattern.matches("[\\s]+", XB.getElement())) {
+		//if ((XB.getElement().equals("lambda"))) {
+			//ans.add(new Element("null"));
+			//return ans;
+			System.out.println("returning empty set");
+			tmp.clear();
+			return tmp;
+			//ans.clear();
+			//return ans;
 		}
-
-		// Case-2: X is a terminal
-		Element X = new Element(tokenizedXB[0]);
-		Element B = new Element(rest);
 		
+		Element X = new Element(tokenizedXB[0].trim());
+		Element B = new Element(rest.trim());
+		System.out.println("XB: " + XB.getElement() + "#");
+		//System.out.println("X: " + X.getElement() + "@");
+		//System.out.println("B: " + B.getElement() + "@");
+		
+		// Case-2: X is a terminal
 		if (terminals.contains(X)) {
 			// X.printElemInfo();
-			ans.add(X);
-			return ans;
+			tmp.add(X);
+			return tmp;
+			//ans.add(X);
+			//return ans;
+		} else {
+			
 		}
 		
 		/* Case-3: X is a nonterminal */
 		ans.clear();
+		System.out.println(X + " visited? " + X.visitedFirst());
 		if (!X.visitedFirst()) {
 			X.setVisitedFirst(true);
-			//System.out.println("X: " + X.getElement() + " $");
+			System.out.println("X: " + X.getElement() + " $");
 			for (ProductionRule pr : allProductionRules) {
 				if (pr.getLHS().equals(X)) {
-					for (Element e : internalFirst(pr.getRHS().get(0)))
+					Element rhs = pr.getRHS().get(0);
+					System.out.println("internalFirst-rhs(" + rhs + ") of " + pr.getLHS() );
+					for (Element e : internalFirst(rhs)) {
+						System.out.println("adding-rhs: " + e);
 						ans.add(e);
+					}
 				}
 			}
 		}
 		
-		// check symbolDerivesEmptyList which is a hashset for the symbol derives empty or not
-		if (symbolDerivesEmptyList.contains(X)) {
-			int x = symbolDerivesEmptyList.indexOf(X);
-			if (symbolDerivesEmptyList.get(x).symbolDerivesEmpty()) {
-				//System.out.println("B: " + B + " $");
+		// check symbolDerivesEmptyList which is a hashset for the symbol 
+		// derives empty or not
+		//System.out.println("list: " + symbolDerivesEmptyList);
+		for (ProductionRule pr : allProductionRules) {
+			if (pr.getLHS().equals(X)) {
+				if (pr.getLHS().symbolDerivesEmpty()) {
+		//if (symbolDerivesEmptyList.contains(X)) {
+			//int x = symbolDerivesEmptyList.indexOf(X);
+			//if (symbolDerivesEmptyList.get(x).symbolDerivesEmpty()) {
+				System.out.println("internalFirst-B(" + B + ") of " + XB);	
 				for (Element e : internalFirst(B))
 					ans.add(e);
+				//System.out.println("ans2: " + ans);
+				}
 			}
+		//}
 		}
 		return ans;
 	}
@@ -430,7 +490,7 @@ public class PredictSet {
 	/*
 	 * tail: Finds the following Element(s) of a given Element (actually, we
 	 * should say element sets), e.g. tail(y) returns 'B C' for the grammar 
-	 * rule A : a y B C
+	 * rule (A : a y B C)
 	 * @o: The Element (sets) which is going to be searched for tail
 	 * @A: The Element which is going to truncate argument o
 	 * returns: The part left (tail) after truncate
@@ -495,7 +555,6 @@ public class PredictSet {
 	 * printAllLists: Prints the all lists initialized before computation
 	 */
 	public void printAllLists() {
-		System.out.println("All-Elements-List: " + elements);
 		System.out.println("Terminals-List: " + terminals);
 		System.out.println("Nonterminals-List: " + nonterminals);
 		System.out.println("Symbol-Derives-Empty-List: " + symbolDerivesEmptyList);
