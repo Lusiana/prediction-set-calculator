@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -36,7 +37,7 @@ public class PredictSet {
 	private static ArrayList<ProductionRule> allProductionRules = 
 								new ArrayList<ProductionRule>();
 	private String grammar = "";
-	
+	private int deep = 0;
 	
 	/*
 	 * main: Main procedure of the program
@@ -60,9 +61,12 @@ public class PredictSet {
 		for (ProductionRule pr : allProductionRules) {
 			ans = ps.computePredictSet(pr);
 			pr.addToPredictSet(ans);
+			//System.out.println("deep: " + ps.deep);
+			ps.deep = 0;
 			pr.printRuleInfo();
 		}
 		
+		ps.outputResult();
 	}
 	
 	/*
@@ -243,18 +247,19 @@ public class PredictSet {
 		
 		// Consider follow set, if production rule derives empty (first set is
 		// not enough to make prediction)
-/*		if (ruleDerivesEmpty(pr)) {
+		if (ruleDerivesEmpty(pr)) {
 			follow = Follow(pr.getLHS());
-			pr.addToFollowSet(ans);
+			pr.addToFollowSet(follow);
 			for (Element e : follow)
 				ans.add(e);
+			//ans.addAll(follow);		
 		// Initialize the follow set computation of the production rule anyway
 		// (although no consideration for prediction set)
 		} else {
 			follow = Follow(pr.getLHS());
-			pr.addToFollowSet(ans);
+			pr.addToFollowSet(follow);
 		}
-*/		
+		
 		return ans;
 	}
 	
@@ -265,7 +270,7 @@ public class PredictSet {
 	 * returns: A HashSet of Elements which contains the result
 	 */
 	public HashSet<Element> First(Element alpha) {
-		HashSet<Element> ans = new HashSet<Element>();
+		HashSet<Element> ans = null;
 
 		for (Element A : nonterminals)
 			A.setVisitedFirst(false);
@@ -283,11 +288,11 @@ public class PredictSet {
 	public HashSet<Element> internalFirst(Element XB) {
 		HashSet<Element> ans = new HashSet<Element>();
 		HashSet<Element> tmp = new HashSet<Element>();
-		
 		String[] tokenizedXB = null;
 		String rest = "";
 		int len = 0;
-
+		
+		deep++;
 		tokenizedXB = tokenize(XB);
 		len = tokenizedXB.length;
 
@@ -297,44 +302,39 @@ public class PredictSet {
 		}
 
 		// Case-1: XB is empty
-		if (len == 0 || Pattern.matches("[\\s]+", XB.getElement())) {
-		//if ((XB.getElement().equals("lambda"))) {
-			//ans.add(new Element("null"));
-			//return ans;
+		if (len == 0 || XB.getElement().contains(" \t") || XB.getElement().length() == 0) {
 			System.out.println("returning empty set");
 			tmp.clear();
 			return tmp;
-			//ans.clear();
-			//return ans;
+			//return null;
 		}
 		
-		Element X = new Element(tokenizedXB[0].trim());
-		Element B = new Element(rest.trim());
+		Element X = new Element(tokenizedXB[0]);
+		Element B = new Element(rest);
 		System.out.println("XB: " + XB.getElement() + "#");
-		//System.out.println("X: " + X.getElement() + "@");
-		//System.out.println("B: " + B.getElement() + "@");
-		
+		System.out.println("B: " + B.getElement() + "%");
 		// Case-2: X is a terminal
 		if (terminals.contains(X)) {
-			// X.printElemInfo();
-			tmp.add(X);
-			return tmp;
-			//ans.add(X);
-			//return ans;
-		} else {
-			
+			ans.add(X);
+			return ans;
 		}
 		
 		/* Case-3: X is a nonterminal */
 		ans.clear();
 		System.out.println(X + " visited? " + X.visitedFirst());
-		if (!X.visitedFirst()) {
-			X.setVisitedFirst(true);
+		int x = nonterminals.indexOf(X);
+		//System.out.println("index-x: " + x);
+		
+		if (!nonterminals.get(x).visitedFirst()) {
+			nonterminals.get(x).setVisitedFirst(true);
 			System.out.println("X: " + X.getElement() + " $");
+
+			// foreach rhs of ProductionsFor(X), do same internalFirst 
 			for (ProductionRule pr : allProductionRules) {
 				if (pr.getLHS().equals(X)) {
 					Element rhs = pr.getRHS().get(0);
 					System.out.println("internalFirst-rhs(" + rhs + ") of " + pr.getLHS() );
+					//ans.addAll(internalFirst(rhs));
 					for (Element e : internalFirst(rhs)) {
 						System.out.println("adding-rhs: " + e);
 						ans.add(e);
@@ -343,23 +343,14 @@ public class PredictSet {
 			}
 		}
 		
-		// check symbolDerivesEmptyList which is a hashset for the symbol 
-		// derives empty or not
-		//System.out.println("list: " + symbolDerivesEmptyList);
-		for (ProductionRule pr : allProductionRules) {
-			if (pr.getLHS().equals(X)) {
-				if (pr.getLHS().symbolDerivesEmpty()) {
-		//if (symbolDerivesEmptyList.contains(X)) {
-			//int x = symbolDerivesEmptyList.indexOf(X);
-			//if (symbolDerivesEmptyList.get(x).symbolDerivesEmpty()) {
-				System.out.println("internalFirst-B(" + B + ") of " + XB);	
-				for (Element e : internalFirst(B))
-					ans.add(e);
-				//System.out.println("ans2: " + ans);
-				}
-			}
-		//}
+		// check symbolDerivesEmptyList for current X
+		if (symbolDerivesEmptyList.contains(X)) {
+			System.out.println("internalFirst-B(" + B + ") of " + XB);
+			//ans.addAll(internalFirst(B));
+			for (Element e : internalFirst(B))
+				ans.add(e);
 		}
+		
 		return ans;
 	}
 	
@@ -404,7 +395,7 @@ public class PredictSet {
 			return false;
 		}
 	}
-
+	
 	
 	/*
 	 * Follow: Triggers the computation of the follow set
@@ -433,9 +424,10 @@ public class PredictSet {
 		
 		ans.clear();
 		//System.out.println("what came: " + A + " visited? " + A.visitedFollow());
-		if (!A.visitedFollow()) {
+		int x = nonterminals.indexOf(A);
+		if (!nonterminals.get(x).visitedFollow()) {
 			
-			A.setVisitedFollow(true);
+			nonterminals.get(x).setVisitedFollow(true);
 			//System.out.println("in: " + A.visitedFollow());
 			//System.out.println("A: " + A);
 			occurrences = findOccurrences(A);
@@ -552,6 +544,82 @@ public class PredictSet {
 	
 	
 	/*
+	 * outputResult: Output all the result as a table based on tab aligning
+	 */
+	public void outputResult() {
+		Element rhs = null, lhs = null;
+		boolean firstLine = true;
+		
+		System.out.println("LHS\tRHS\tFIRST\tFOLLOW\tPREDICT");
+		
+		for (ProductionRule pr : allProductionRules) {
+			if (firstLine) {
+				lhs = pr.getLHS();
+				rhs = pr.getRHS().get(0);
+				System.out.print(pr.getLHS() + "\t");
+				
+				if (Pattern.matches("[\\s]+", rhs.getElement())) {
+					System.out.print("(null)" + "\t");
+					System.out.print(outputSetElements(pr.getFirstSet()) + "\t");
+					System.out.print(outputSetElements(pr.getFollowSet()) + "\t");
+					System.out.println(outputSetElements(pr.getPredictSet()));
+				} else {
+					System.out.print(rhs + "\t");
+					System.out.print(outputSetElements(pr.getFirstSet()) + "\t");
+					System.out.print(outputSetElements(pr.getFollowSet()) + "\t");
+					System.out.println(outputSetElements(pr.getPredictSet()));
+				}
+				
+				firstLine = false;
+				
+			} else {
+				
+				if (pr.getLHS().equals(lhs))
+					System.out.print("\t");
+				rhs = pr.getRHS().get(0);
+				
+				if (Pattern.matches("[\\s]+", rhs.getElement())) {
+					System.out.print("\t" + "(null)" + "\t\t\t");
+					System.out.println(outputSetElements(pr.getFollowSet()));
+				} else {
+					System.out.print("\t" + rhs + "\t\t\t");
+					System.out.println(outputSetElements(pr.getPredictSet()));
+				}
+			}
+			
+			firstLine = true;
+		}
+	}
+		
+	/*
+	 * outputSetElements: Extract all the elements in the set and convert 
+	 * them to string format
+	 * @l: List should be converted into string
+	 * returns: String representation of all thhe elements
+	 */
+	public String outputSetElements(ArrayList<HashSet<Element>> l) {
+		ArrayList<String> outlist = new ArrayList<String>(); 
+		String s = null;
+		String out = "";
+		
+		for (HashSet<Element> set : l) {
+			for (Element e : set) {
+				s = e.getElement();
+				if (s.contains("\""))
+					s = s.substring(1, s.length()-1);
+				outlist.add(s);
+			}	
+		}
+		Collections.sort(outlist);
+		for (String i : outlist) {
+			out += i;
+			out += " ";
+		}
+		return out;
+	}
+	
+	
+	/*
 	 * printAllLists: Prints the all lists initialized before computation
 	 */
 	public void printAllLists() {
@@ -560,4 +628,6 @@ public class PredictSet {
 		System.out.println("Symbol-Derives-Empty-List: " + symbolDerivesEmptyList);
 	}
 	
+
+
 }
