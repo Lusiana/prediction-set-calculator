@@ -3,6 +3,7 @@
  * Name                   : PredictSet.java
  * 			    ProductionRule.java + Element.java
  * Author                 : Hakki Caner KIRMIZI
+ * Date			  : 20100425
  * Description            : A java program which can evaluate an input grammar 
  * 			    and computes the first and follow set of it. Then, 
  * 			    it constructs a table of this result along with the 
@@ -55,15 +56,13 @@ public class PredictSet {
 		ps.createProductionRules();
 		ps.constructIdentifierTerminals();
 		
-		ps.printAllLists();
+		//ps.printAllLists();
 		
 		// compute the predict set for this rule
 		for (ProductionRule pr : allProductionRules) {
 			ans = ps.computePredictSet(pr);
 			pr.addToPredictSet(ans);
-			//System.out.println("deep: " + ps.deep);
-			ps.deep = 0;
-			pr.printRuleInfo();
+			//pr.printRuleInfo();
 		}
 		
 		ps.outputResult();
@@ -245,6 +244,7 @@ public class PredictSet {
 		ans = First(pr.getRHS().get(0));
 		pr.addToFirstSet(ans);
 		
+		
 		// Consider follow set, if production rule derives empty (first set is
 		// not enough to make prediction)
 		if (ruleDerivesEmpty(pr)) {
@@ -303,7 +303,7 @@ public class PredictSet {
 
 		// Case-1: XB is empty
 		if (len == 0 || XB.getElement().contains(" \t") || XB.getElement().length() == 0) {
-			System.out.println("returning empty set");
+			//System.out.println("returning empty set");
 			tmp.clear();
 			return tmp;
 			//return null;
@@ -311,8 +311,9 @@ public class PredictSet {
 		
 		Element X = new Element(tokenizedXB[0]);
 		Element B = new Element(rest);
-		System.out.println("XB: " + XB.getElement() + "#");
-		System.out.println("B: " + B.getElement() + "%");
+		//System.out.println("XB: " + XB.getElement() + "#");
+		//System.out.println("B: " + B.getElement() + "%");
+		
 		// Case-2: X is a terminal
 		if (terminals.contains(X)) {
 			ans.add(X);
@@ -321,22 +322,22 @@ public class PredictSet {
 		
 		/* Case-3: X is a nonterminal */
 		ans.clear();
-		System.out.println(X + " visited? " + X.visitedFirst());
+		//System.out.println(X + " visited? " + X.visitedFirst());
 		int x = nonterminals.indexOf(X);
 		//System.out.println("index-x: " + x);
 		
 		if (!nonterminals.get(x).visitedFirst()) {
 			nonterminals.get(x).setVisitedFirst(true);
-			System.out.println("X: " + X.getElement() + " $");
+			//System.out.println("X: " + X.getElement() + " $");
 
 			// foreach rhs of ProductionsFor(X), do same internalFirst 
 			for (ProductionRule pr : allProductionRules) {
 				if (pr.getLHS().equals(X)) {
 					Element rhs = pr.getRHS().get(0);
-					System.out.println("internalFirst-rhs(" + rhs + ") of " + pr.getLHS() );
+					//System.out.println("internalFirst-rhs(" + rhs + ") of " + pr.getLHS() );
 					//ans.addAll(internalFirst(rhs));
 					for (Element e : internalFirst(rhs)) {
-						System.out.println("adding-rhs: " + e);
+						//System.out.println("adding-rhs: " + e);
 						ans.add(e);
 					}
 				}
@@ -345,7 +346,7 @@ public class PredictSet {
 		
 		// check symbolDerivesEmptyList for current X
 		if (symbolDerivesEmptyList.contains(X)) {
-			System.out.println("internalFirst-B(" + B + ") of " + XB);
+			//System.out.println("internalFirst-B(" + B + ") of " + XB);
 			//ans.addAll(internalFirst(B));
 			for (Element e : internalFirst(B))
 				ans.add(e);
@@ -570,7 +571,7 @@ public class PredictSet {
 					System.out.println(outputSetElements(pr.getPredictSet()));
 				}
 				
-				firstLine = false;
+				//firstLine = false;
 				
 			} else {
 				
@@ -629,5 +630,5 @@ public class PredictSet {
 	}
 	
 
-
+	
 }
